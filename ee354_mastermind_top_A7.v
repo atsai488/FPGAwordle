@@ -25,8 +25,8 @@ module ee354_GCD_top
 		
 		BtnL, BtnU, BtnD, BtnR,            // the Left, Up, Down, and the Right buttons BtnL, BtnR,
 		BtnC,                              // the center button (this is our reset in most of our designs)
-		Sw7, Sw6, Sw5, Sw4, Sw3, Sw2, Sw1, Sw0, // 8 switches
-		Ld7, Ld6, Ld5, Ld4, Ld3, Ld2, Ld1, Ld0, // 8 LEDs
+		Sw5, Sw4, Sw3, Sw2, Sw1, Sw0, // 6 switches
+		Ld5, Ld4, Ld3, Ld2, Ld1, Ld0, // 6 LEDs
 		An3, An2, An1, An0,			       // 4 anodes
 		An7, An6, An5, An4,                // another 4 anodes which are not used
 		Ca, Cb, Cc, Cd, Ce, Cf, Cg,        // 7 cathodes
@@ -38,7 +38,7 @@ module ee354_GCD_top
 	input		ClkPort;	
 	// Project Specific Inputs
 	input		BtnL, BtnU, BtnD, BtnR, BtnC;	
-	input		Sw7, Sw6, Sw5, Sw4, Sw3, Sw2, Sw1, Sw0;
+	input		Sw5, Sw4, Sw3, Sw2, Sw1, Sw0;
 	
 	
 	/*  OUTPUTS */
@@ -47,7 +47,7 @@ module ee354_GCD_top
 	output QuadSpiFlashCS;
 	// Project Specific Outputs
 	// LEDs
-	output 	Ld0, Ld1, Ld2, Ld3, Ld4, Ld5, Ld6, Ld7;
+	output 	Ld0, Ld1, Ld2, Ld3, Ld4, Ld5;
 	// SSD Outputs
 	output 	Cg, Cf, Ce, Cd, Cc, Cb, Ca, Dp;
 	output 	An0, An1, An2, An3;	
@@ -63,8 +63,8 @@ module ee354_GCD_top
 	wire enter;
 	reg[2:0] guessNumber;
 	wire q_I, q_1, q_2, q_3, q_4, q_5, q_wrong, q_correct, q_Done;
-	reg [4:0] charIn;
-	reg [4:0] matrix [4:0];
+	reg [5:0] colorIn;
+	reg [5:0] matrix [3:0];
 	
 //------------	
 // Disable the three memories so that they do not interfere with the rest of the design.
@@ -100,8 +100,13 @@ module ee354_GCD_top
 	// To make this possible, we need a single clock producing  circuit.
 
 ee354_debouncer #(.N_dc(28)) ee354_debouncer_2 
-        (.CLK(sys_clk), .RESET(Reset), .PB(BtnC), .DPB( ), 
+        (.CLK(sys_clk), .RESET(Reset), .PB(BtnU), .DPB(), 
 		.SCEN(enter), .MCEN( ), .CCEN( ));
+
+//--------------
+// LEDs
+	assign {Ld7, Ld6} = {0, 0};
+	assign {Ld5, Ld4, Ld3, Ld2, Ld1, Ld0} = {Sw5, Sw4, Sw3, Sw2, Sw1, Sw0}; // Reset is driven by BtnC
 		 		
 //------------
 // DESIGN
@@ -111,18 +116,26 @@ ee354_debouncer #(.N_dc(28)) ee354_debouncer_2
 	begin
 		if(Reset)
 		begin			
-			charIn <= 5'b00000;
+			colorIn <= 6'b000000;
 		end
 		else
 		begin
-			charIn <= {Sw4, Sw3, Sw2, Sw1, Sw0};
+			if(INPUT)
+			begin 
+				colorIn <= {Sw5, Sw4, Sw3, Sw2, Sw1, Sw0};
+			end
+			if(CHECK)
+			begin
+			end
+			if 
 		end
 	end
 	
+//
+
 	// the state machine module
-	ee354_GCD ee354_GCD_1(.Clk(sys_clk), .SCEN(CEN_Pulse), .Reset(Reset), .Start(Start_Ack_Pulse), .Ack(Start_Ack_Pulse), 
-						  .Ain(Ain), .Bin(Bin), .A(A), .B(B), .AB_GCD(AB_GCD), .i_count(i_count),
-						  .q_I(q_I), .q_Sub(q_Sub), .q_Mult(q_Mult), .q_Done(q_Done));
+	mastermind_core mastermind_core_1();
+
 
 endmodule
 
