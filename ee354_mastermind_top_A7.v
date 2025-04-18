@@ -62,9 +62,11 @@ module ee354_GCD_top
 	
 	wire enter;
 	reg[2:0] guessNumber;
-	wire q_I, q_1, q_2, q_3, q_4, q_5, q_wrong, q_correct, q_Done;
+	wire q_Start, q_Input, q_Check, q_DoneC, q_DoneNC;
+	reg [11:0] correct_answer;
 	reg [5:0] colorIn;
-	reg [5:0] matrix [3:0];
+	reg [2:0] current_color;
+	reg [5:0] matrix [11:0];
 	
 //------------	
 // Disable the three memories so that they do not interfere with the rest of the design.
@@ -117,24 +119,43 @@ ee354_debouncer #(.N_dc(28)) ee354_debouncer_2
 		if(Reset)
 		begin			
 			colorIn <= 6'b000000;
+			correct_answer <= 12'b001001001001;
 		end
 		else
 		begin
-			if(INPUT)
+			if(q_Input)
 			begin 
 				colorIn <= {Sw5, Sw4, Sw3, Sw2, Sw1, Sw0};
+				//VGA stuff
 			end
-			if(CHECK)
+			if(q_Check)
 			begin
+				matrix[guessNumber] <= current_guess;
+				//tell em what they did wrong
 			end
-			if 
 		end
 	end
 	
 //
-
+//------------
+	always @(posedge colorIn)
+	begin
+		case(colorIn)
+			6'b000001: current_color <= 3'b001; 
+			6'b000010: current_color <= 3'b010; 
+			6'b000100: current_color <= 3'b011; 
+			6'b001000: current_color <= 3'b100; 
+			6'b010000: current_color <= 3'b101; 
+			6'b100000: current_color <= 3'b110; 
+			default: current_color <= 3'b000;   
+		endcase
+	end	
 	// the state machine module
-	mastermind_core mastermind_core_1();
+	mastermind_core mastermind_core_1(.Clk(ClkPort), .Reset(Reset), .correct_answer(correct_answer), .current_color(current_color), 
+									.confirm_color(BtnD), .check_guess(BtnC), .BtnL(BtnL), .BtnR(BtnR), guess_num(guessNumber), 
+									current_guess(current_guess), q_Start(q_Start), q_Input(q_Input), q_Check(q_Check), q_DoneC(q_DoneC), q_DoneNC(q_DoneNC));
+
+
 
 
 endmodule
