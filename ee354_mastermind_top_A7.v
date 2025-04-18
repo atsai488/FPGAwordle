@@ -15,6 +15,7 @@
 //  02/24/2020 Nexys-3 to Nexys-4 conversion done by Yue (Julien) Niu and reviewed by Gandhi
 //////////////////////////////////////////////////////////////////////////////////
 
+`timescale 1ns / 1ps
 
 
 module ee354_GCD_top
@@ -58,9 +59,9 @@ module ee354_GCD_top
 	wire		Reset, ClkPort;
 	wire		board_clk, sys_clk;
 	wire [1:0] 	ssdscan_clk;
-	reg [26:0]	DIV_CLK;
+
 	
-	wire enter;
+	wire confirm_color, confirm_guess, reset, left, right;
 	reg[2:0] guessNumber;
 	wire q_Start, q_Input, q_Check, q_DoneC, q_DoneNC;
 	reg [11:0] correct_answer;
@@ -100,16 +101,49 @@ module ee354_GCD_top
 // INPUT: SWITCHES & BUTTONS
 	// BtnL is used as both Start and Acknowledge. 
 	// To make this possible, we need a single clock producing  circuit.
-
-ee354_debouncer #(.N_dc(28)) ee354_debouncer_2 
+ee354_debouncer #(.N_dc(28)) ee354_debouncer_1
         (.CLK(sys_clk), .RESET(Reset), .PB(BtnU), .DPB(), 
-		.SCEN(enter), .MCEN( ), .CCEN( ));
-
+		.SCEN(reset), .MCEN( ), .CCEN( ));
+ee354_debouncer #(.N_dc(28)) ee354_debouncer_2 
+        (.CLK(sys_clk), .RESET(Reset), .PB(BtnD), .DPB(), 
+		.SCEN(confirm_color), .MCEN( ), .CCEN( ));
+ee354_debouncer #(.N_dc(28)) ee354_debouncer_3
+		(.CLK(sys_clk), .RESET(Reset), .PB(BtnC), .DPB(), 
+		.SCEN(confirm_guess), .MCEN( ), .CCEN( ));
+ee354_debouncer #(.N_dc(28)) ee354_debouncer_4
+		(.CLK(sys_clk), .RESET(Reset), .PB(BtnR), .DPB(),
+		.SCEN(right), .MCEN( ), .CCEN( ));
+ee354_debouncer #(.N_dc(28)) ee354_debouncer_5
+		(.CLK(sys_clk), .RESET(Reset), .PB(BtnL), .DPB(), 
+		.SCEN(left), .MCEN( ), .CCEN( ));
 //--------------
 // LEDs
 	assign {Ld7, Ld6} = {0, 0};
 	assign {Ld5, Ld4, Ld3, Ld2, Ld1, Ld0} = {Sw5, Sw4, Sw3, Sw2, Sw1, Sw0}; // Reset is driven by BtnC
-		 		
+
+
+
+	reg [27:0]	DIV_CLK;
+	always @ (posedge ClkPort, posedge Reset)  
+	begin : CLOCK_DIVIDER
+      if (Reset)
+			DIV_CLK <= 0;
+	  else
+			DIV_CLK <= DIV_CLK + 1'b1;
+	end
+	wire move_clk;
+	assign move_clk=DIV_CLK[19]; //slower clock to drive the movement of objects on the vga screen
+	wire [11:0] background;
+	display_controller dc(.clk(ClkPort), .hSync(hSync), .vSync(vSync), .bright(bright), .hCount(hc), .vCount(vc));
+
+	//need to make this our own VGA output
+	//block_controller sc(.clk(move_clk), .bright(bright), .rst(BtnU), .up(BtnU), .down(BtnD),.left(BtnL),.right(BtnR),.hCount(hc), .vCount(vc), .rgb(rgb), .background(background));
+	
+	assign vgaR = rgb[11 : 8];
+	assign vgaG = rgb[7  : 4];
+	assign vgaB = rgb[3  : 0];
+
+
 //------------
 // DESIGN
 	// On two pushes of BtnR, numbers A and B are recorded in Ain and Bin
@@ -152,9 +186,10 @@ ee354_debouncer #(.N_dc(28)) ee354_debouncer_2
 	end	
 	// the state machine module
 	mastermind_core mastermind_core_1(.Clk(ClkPort), .Reset(Reset), .correct_answer(correct_answer), .current_color(current_color), 
-									.confirm_color(BtnD), .check_guess(BtnC), .BtnL(BtnL), .BtnR(BtnR), guess_num(guessNumber), 
+									.confirm_color(confirm_color), .check_guess(confirm_guess), .BtnL(left), .BtnR(right), guess_num(guessNumber), 
 									current_guess(current_guess), q_Start(q_Start), q_Input(q_Input), q_Check(q_Check), q_DoneC(q_DoneC), q_DoneNC(q_DoneNC));
 
+	assign {An7, An6, An5, An4, An3, An2, An1, An0} = 8'b11111111;
 
 
 
