@@ -1,88 +1,91 @@
-`timescale 1ns / 1ps
+// mastermind_vga.v
+`timescale 1ns/1ps
 
-module mastermind_controller(
-	input clk, //this clock must be a slow enough clock to view the changing positions of the objects
-	input bright,
-	input rst,
-	input up, input down, input left, input right,
-	input [9:0] hCount, vCount,
-	output reg [11:0] rgb,
-	output reg [11:0] background
-   );
-	wire block_fill;
-	
-	//these two values dictate the center of the block, incrementing and decrementing them leads the block to move in certain directions
-	reg [9:0] xpos, ypos;
-	
-	parameter RED   = 12'b1111_0000_0000;
-	
-	/*when outputting the rgb value in an always block like this, make sure to include the if(~bright) statement, as this ensures the monitor 
-	will output some data to every pixel and not just the images you are trying to display*/
-	always@ (*) begin
-    	if(~bright )	//force black if not inside the display area
-			rgb = 12'b0000_0000_0000;
-		else if (block_fill) 
-			rgb = RED; 
-		else	
-			rgb=background;
-	end
-		//the +-5 for the positions give the dimension of the block (i.e. it will be 10x10 pixels)
-	assign block_fill=vCount>=(ypos-5) && vCount<=(ypos+5) && hCount>=(xpos-5) && hCount<=(xpos+5);
-	
-	always@(posedge clk, posedge rst) 
-	begin
-		if(rst)
-		begin 
-			//rough values for center of screen
-			xpos<=450;
-			ypos<=250;
-		end
-		else if (clk) begin
-		
-		/* Note that the top left of the screen does NOT correlate to vCount=0 and hCount=0. The display_controller.v file has the 
-			synchronizing pulses for both the horizontal sync and the vertical sync begin at vcount=0 and hcount=0. Recall that after 
-			the length of the pulse, there is also a short period called the back porch before the display area begins. So effectively, 
-			the top left corner corresponds to (hcount,vcount)~(144,35). Which means with a 640x480 resolution, the bottom right corner 
-			corresponds to ~(783,515).  
-		*/
-			if(right) begin
-				xpos<=xpos+2; //change the amount you increment to make the speed faster 
-				if(xpos==800) //these are rough values to attempt looping around, you can fine-tune them to make it more accurate- refer to the block comment above
-					xpos<=150;
-			end
-			else if(left) begin
-				xpos<=xpos-2;
-				if(xpos==150)
-					xpos<=800;
-			end
-			else if(up) begin
-				ypos<=ypos-2;
-				if(ypos==34)
-					ypos<=514;
-			end
-			else if(down) begin
-				ypos<=ypos+2;
-				if(ypos==514)
-					ypos<=34;
-			end
-		end
-	end
-	
-	//the background color reflects the most recent button press
-	always@(posedge clk, posedge rst) begin
-		if(rst)
-			background <= 12'b1111_1111_1111;
-		else 
-			if(right)
-				background <= 12'b1111_1111_0000;
-			else if(left)
-				background <= 12'b0000_1111_1111;
-			else if(down)
-				background <= 12'b0000_1111_0000;
-			else if(up)
-				background <= 12'b0000_0000_1111;
-	end
+module mastermind_vga (
+    input             clk,        // pixel clock (25 MHz for 640×480@60Hz)
+    input             bright,     // from display_controller
+    input      [9:0]  hCount,     // current pixel X (0–639)
+    input      [9:0]  vCount,     // current pixel Y (0–479)
+    input      [11:0] matrix [0:5],  // 6 rows × 12-bit (4 slots×3 bits)
+    input      [2:0]  guess_num,  // current attempt (0–5)
+    input             q_Input,    // high while in INPUT state
+    output reg [3:0]  vgaR,       // 4 bits per channel
+    output reg [3:0]  vgaG,
+    output reg [3:0]  vgaB
+);
 
-	
-	
+  // geometry parameters
+  localparam COLS    = 4;
+  localparam ROWS    = 6;
+  localparam SLOT_W  = 48;    // each peg‐slot square width
+  localparam SLOT_H  = 48;    // each peg‐slot square height
+  localparam MARGIN  = 16;    // space between slots
+  localparam X0      = 64;    // left offset for whole grid
+  localparam Y0      = 32;    // top  offset for whole grid
+
+  integer row, col;
+  integer x0_slot, y0_slot;
+  integer dx, dy;
+  reg [11:0] fill_color;
+
+  always @(posedge clk) begin
+    if (!bright) begin
+      // outside active video
+      vgaR <= 4'h0;
+      vgaG <= 4'h0;
+      vgaB <= 4'h0;
+
+    end else begin
+      // default background
+      fill_color = 12'h000;
+
+      // are we inside the grid region?
+      if (hCount >= X0 &&
+          hCount <  X0 + COLS*(SLOT_W+MARGIN)-MARGIN &&
+          vCount >= Y0 &&
+          vCount <  Y0 + ROWS*(SLOT_H+MARGIN)-MARGIN) begin
+
+        // compute which cell
+        col = (hCount - X0) / (SLOT_W + MARGIN);
+        row = (vCount - Y0) / (SLOT_H + MARGIN);
+
+        // origin (top-left) of this slot
+        x0_slot = X0 + col*(SLOT_W+MARGIN);
+        y0_slot = Y0 + row*(SLOT_H+MARGIN);
+
+        // relative coords inside the 48×48 cell
+        dx = hCount - x0_slot;
+        dy = vCount - y0_slot;
+
+        // draw a circular peg of radius 16px at center (24,24)
+        // (dx−24)^2 + (dy−24)^2 < 16^2
+        if ((dx-24)*(dx-24) + (dy-24)*(dy-24) <= 16*16) begin
+          // get the 3-bit color code from matrix[row]
+          case ( matrix[row][col*3 +: 3] )
+            3'b001: fill_color = 12'h00F; // blue
+            3'b010: fill_color = 12'h0F0; // green
+            3'b011: fill_color = 12'h0FF; // cyan
+            3'b100: fill_color = 12'hF00; // red
+            3'b101: fill_color = 12'hFF0; // yellow
+            3'b110: fill_color = 12'hF0F; // magenta
+            default: fill_color = 12'h888; // gray for empty
+          endcase
+
+        end else begin
+          // cell border: highlight the current input row
+          if (row == guess_num && q_Input) begin
+            // draw a 2px bright border
+            if (dx < 2 || dx >= SLOT_W-2 || dy < 2 || dy >= SLOT_H-2)
+              fill_color = 12'hFFF;  // white border
+          end
+        end
+      end
+
+      // drive DAC outputs
+      vgaR <= fill_color[11:8];
+      vgaG <= fill_color[7:4];
+      vgaB <= fill_color[3:0];
+    end
+  end
+
 endmodule

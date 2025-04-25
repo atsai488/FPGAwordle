@@ -145,12 +145,21 @@ ee354_debouncer #(.N_dc(28)) ee354_debouncer_5
 	wire rst;
 	display_controller dc(.clk(ClkPort), .hSync(hSync), .vSync(vSync), .bright(bright), .hCount(hc), .vCount(vc));
 
-	//need to make this our own VGA output
-	mastermind_controller sc(.clk(move_clk), .bright(bright), .rst(BtnU), .up(BtnU), .down(BtnD),.left(BtnL),.right(BtnR),.hCount(hc), .vCount(vc), .rgb(rgb), .background(background));
-	
-	assign vgaR = rgb[11 : 8];
-	assign vgaG = rgb[7  : 4];
-	assign vgaB = rgb[3  : 0];
+	// after your display_controller dc instantiation
+wire [11:0] rgb12;
+mastermind_vga mg_vga (
+  .clk      (ClkPort),        // or move_clk if you want slower animation
+  .bright   (bright),
+  .hCount   (hc),
+  .vCount   (vc),
+  .matrix   (matrix),         // the 6×12-bit array you fill on q_Check
+  .guess_num(guessNumber),
+  .q_Input  (q_Input),
+  .vgaR     (vgaR),
+  .vgaG     (vgaG),
+  .vgaB     (vgaB)
+);
+
 
 
 //------------
