@@ -131,13 +131,22 @@ ee354_debouncer #(.N_dc(28)) ee354_debouncer_5
 	  else
 			DIV_CLK <= DIV_CLK + 1'b1;
 	end
+
+
 	wire move_clk;
 	assign move_clk=DIV_CLK[19]; //slower clock to drive the movement of objects on the vga screen
 	wire [11:0] background;
+	wire bright;
+	wire[9:0] hc, vc;
+	wire[15:0] score;
+	wire up,down,left,right;
+	wire [3:0] anode;
+	wire [11:0] rgb;
+	wire rst;
 	display_controller dc(.clk(ClkPort), .hSync(hSync), .vSync(vSync), .bright(bright), .hCount(hc), .vCount(vc));
 
 	//need to make this our own VGA output
-	//block_controller sc(.clk(move_clk), .bright(bright), .rst(BtnU), .up(BtnU), .down(BtnD),.left(BtnL),.right(BtnR),.hCount(hc), .vCount(vc), .rgb(rgb), .background(background));
+	mastermind_controller sc(.clk(move_clk), .bright(bright), .rst(BtnU), .up(BtnU), .down(BtnD),.left(BtnL),.right(BtnR),.hCount(hc), .vCount(vc), .rgb(rgb), .background(background));
 	
 	assign vgaR = rgb[11 : 8];
 	assign vgaG = rgb[7  : 4];
