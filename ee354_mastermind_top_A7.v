@@ -44,18 +44,31 @@ module ee354_mastermind_top_A7(
   wire q_Start, q_Input, q_Check, q_DoneC, q_DoneNC;
   reg  [11:0] correct_answer = 12'b001_001_001_001;
   reg  [2:0]  current_color;
+  wire [71:0] matrix_flat;
 
+  reg [1:0] index;
   // Update current_color from switches when in INPUT
-  always @(posedge sys_clk) if (q_Input) begin
-    case ({Sw5,Sw4,Sw3,Sw2,Sw1,Sw0})
-      6'b000001: current_color <= 3'b001;
-      6'b000010: current_color <= 3'b010;
-      6'b000100: current_color <= 3'b011;
-      6'b001000: current_color <= 3'b100;
-      6'b010000: current_color <= 3'b101;
-      6'b100000: current_color <= 3'b110;
-      default:   current_color <= 3'b000;
-    endcase
+  always @(posedge sys_clk, posedge db_reset) 
+  begin
+	if (db_reset)
+	begin
+		current_color <= 3'b000; // reset color
+		current_guess <= 12'b000000000000; // reset guess
+		guessNumber <= 3'b000; // reset guess number
+
+	end
+  	if (q_Input) begin
+		case ({Sw5,Sw4,Sw3,Sw2,Sw1,Sw0})
+		6'b000001: current_color <= 3'b001;
+		6'b000010: current_color <= 3'b010;
+		6'b000100: current_color <= 3'b011;
+		6'b001000: current_color <= 3'b100;
+		6'b010000: current_color <= 3'b101;
+		6'b100000: current_color <= 3'b110;
+		default:   current_color <= 3'b000;
+		endcase
+		matrix_flat[guessNumber*12 + (index+1)*3 - 1: guessNumber*12 + index*3] <= current_color;
+	end
   end
 
   // Instantiate game core
@@ -68,7 +81,7 @@ module ee354_mastermind_top_A7(
     .check_guess   (confirm_guess),
     .BtnL          (left_db),
     .BtnR          (right_db),
-    .index         (),           // unused here
+    .index         (index),           // unused here
     .guess_num     (guessNumber),
     .current_guess (current_guess),
     .q_Start       (q_Start),
@@ -78,18 +91,6 @@ module ee354_mastermind_top_A7(
     .q_DoneNC      (q_DoneNC)
   );
 
-  // Store guesses into matrix on each check
-  reg [11:0] matrix [5:0];
-  always @(posedge sys_clk) if (q_Check) matrix[guessNumber] <= current_guess;
-
-  // Flatten matrix for VGA port
-  wire [71:0] matrix_flat;
-  genvar i;
-  generate
-    for (i = 0; i < 6; i = i + 1) begin : FLAT
-      assign matrix_flat[i*12 +: 12] = matrix[i];
-    end
-  endgenerate
 
   // VGA timing
   wire        bright;

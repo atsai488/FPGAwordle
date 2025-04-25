@@ -16,11 +16,11 @@ module mastermind_vga (
 );
 
   // unpack the flat 72-bit bus into an internal 6×12 array
-  wire [11:0] matrix [0:5];
+  wire [11:0] matrix [5:0];
   genvar i;
   generate
-    for (i = 0; i < 6; i = i + 1) begin
-      assign matrix[i] = matrix_flat[i*12 +: 12];
+    for (i = 0; i < 24; i = i + 1) begin
+      assign matrix[i] = matrix_flat[3*(i+1) - 1 : 3*i];
     end
   endgenerate
 
