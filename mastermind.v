@@ -1,18 +1,28 @@
 // mastermind_vga.v
 `timescale 1ns/1ps
-
+// mastermind_vga.v
+`timescale 1ns/1ps
 module mastermind_vga (
-    input             clk,        // pixel clock (25 MHz for 640×480@60Hz)
-    input             bright,     // from display_controller
-    input      [9:0]  hCount,     // current pixel X (0–639)
-    input      [9:0]  vCount,     // current pixel Y (0–479)
-    input      [11:0] matrix [0:5],  // 6 rows × 12-bit (4 slots×3 bits)
-    input      [2:0]  guess_num,  // current attempt (0–5)
-    input             q_Input,    // high while in INPUT state
-    output reg [3:0]  vgaR,       // 4 bits per channel
-    output reg [3:0]  vgaG,
-    output reg [3:0]  vgaB
+    input            clk,          // pixel clock (≈25 MHz)
+    input            bright,       // from display_controller
+    input      [9:0] hCount,       // X coordinate
+    input      [9:0] vCount,       // Y coordinate
+    input     [71:0] matrix_flat,  // 6 rows × 12 bits each → 72 bits total
+    input      [2:0] guess_num,    // current attempt (0-5)
+    input            q_Input,      // high while in INPUT state
+    output reg [3:0] vgaR,         // 4 bits/channel
+    output reg [3:0] vgaG,
+    output reg [3:0] vgaB
 );
+
+  // unpack the flat 72-bit bus into an internal 6×12 array
+  wire [11:0] matrix [0:5];
+  genvar i;
+  generate
+    for (i = 0; i < 6; i = i + 1) begin
+      assign matrix[i] = matrix_flat[i*12 +: 12];
+    end
+  endgenerate
 
   // geometry parameters
   localparam COLS    = 4;
@@ -20,8 +30,8 @@ module mastermind_vga (
   localparam SLOT_W  = 48;    // each peg‐slot square width
   localparam SLOT_H  = 48;    // each peg‐slot square height
   localparam MARGIN  = 16;    // space between slots
-  localparam X0      = 64;    // left offset for whole grid
-  localparam Y0      = 32;    // top  offset for whole grid
+  localparam X0      = 300;    // left offset for whole grid
+  localparam Y0      = 50;    // top  offset for whole grid
 
   integer row, col;
   integer x0_slot, y0_slot;

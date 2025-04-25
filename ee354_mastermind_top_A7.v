@@ -1,215 +1,124 @@
-//////////////////////////////////////////////////////////////////////////////////
-// Author:			Shideh Shahidi, Bilal Zafar, Gandhi Puvvada
-// Create Date:		02/25/08
-// File Name:		ee354_GCD_top.v 
-// Description: 
-//
-//
-// Revision: 		2.2
-// Additional Comments: 
-// 10/13/2008 debouncing and single_clock_wide pulse_generation modules are added by Gandhi
-// 10/13/2008 Clock Enable (CEN) has been added by Gandhi
-//  3/ 1/2010 The Spring 2009 debounce design is replaced by the Spring 2010 debounce design
-//            Now, in part 2 of the GCD lab, we do single-stepping 
-//  2/19/2012 Nexys-2 to Nexys-3 conversion done by Gandhi
-//  02/24/2020 Nexys-3 to Nexys-4 conversion done by Yue (Julien) Niu and reviewed by Gandhi
-//////////////////////////////////////////////////////////////////////////////////
-
 `timescale 1ns / 1ps
 
+module ee354_mastermind_top_A7(
+    // Memory disable
+    output wire       QuadSpiFlashCS,
 
-module ee354_GCD_top
-		(//MemOE, MemWR, RamCS, 
-		QuadSpiFlashCS, // Disable the three memory chips
+    // Clock & reset
+    input  wire       ClkPort,
+    input  wire       BtnL, BtnU, BtnD, BtnR, BtnC,
+    input  wire       Sw5, Sw4, Sw3, Sw2, Sw1, Sw0,
 
-        ClkPort,                           // the 100 MHz incoming clock signal
-		
-		BtnL, BtnU, BtnD, BtnR,            // the Left, Up, Down, and the Right buttons BtnL, BtnR,
-		BtnC,                              // the center button (this is our reset in most of our designs)
-		Sw5, Sw4, Sw3, Sw2, Sw1, Sw0, // 6 switches
-		Ld5, Ld4, Ld3, Ld2, Ld1, Ld0, // 6 LEDs
-		An3, An2, An1, An0,			       // 4 anodes
-		An7, An6, An5, An4,                // another 4 anodes which are not used
-		Ca, Cb, Cc, Cd, Ce, Cf, Cg,        // 7 cathodes
-		Dp                                 // Dot Point Cathode on SSDs
-	  );
+    // LEDs
+    output wire       Ld0, Ld1, Ld2, Ld3, Ld4, Ld5,
 
-	/*  INPUTS */
-	// Clock & Reset I/O
-	input		ClkPort;	
-	// Project Specific Inputs
-	input		BtnL, BtnU, BtnD, BtnR, BtnC;	
-	input		Sw5, Sw4, Sw3, Sw2, Sw1, Sw0;
-	
-	
-	/*  OUTPUTS */
-	// Control signals on Memory chips 	(to disable them)
-	//output 	MemOE, MemWR, RamCS, 
-	output QuadSpiFlashCS;
-	// Project Specific Outputs
-	// LEDs
-	output 	Ld0, Ld1, Ld2, Ld3, Ld4, Ld5;
-	// SSD Outputs
-	output 	Cg, Cf, Ce, Cd, Cc, Cb, Ca, Dp;
-	output 	An0, An1, An2, An3;	
-	output 	An4, An5, An6, An7;	
+    // Seven-segment
+    output wire       Cg, Cf, Ce, Cd, Cc, Cb, Ca, Dp,
+    output wire       An0, An1, An2, An3, An4, An5, An6, An7,
 
-	
-	/*  LOCAL SIGNALS */
-	wire		Reset, ClkPort;
-	wire		board_clk, sys_clk;
-	wire [1:0] 	ssdscan_clk;
-
-	
-	wire confirm_color, confirm_guess, reset, left, right;
-	reg[2:0] guessNumber;
-	wire q_Start, q_Input, q_Check, q_DoneC, q_DoneNC;
-	reg [11:0] correct_answer;
-	reg [5:0] colorIn;
-	reg [2:0] current_color;
-	reg [5:0] matrix [11:0];
-	
-//------------	
-// Disable the three memories so that they do not interfere with the rest of the design.
-	assign {MemOE, MemWR, RamCS, QuadSpiFlashCS} = 4'b1111;
-	
-	
-//------------
-// CLOCK DIVISION
-
-	// The clock division circuitary works like this:
-	//
-	// ClkPort ---> [BUFGP2] ---> board_clk
-	// board_clk ---> [clock dividing counter] ---> DIV_CLK
-	// DIV_CLK ---> [constant assignment] ---> sys_clk;
-	
-	BUFGP BUFGP1 (board_clk, ClkPort); 	
-
-// As the ClkPort signal travels throughout our design,
-// it is necessary to provide global routing to this signal. 
-// The BUFGPs buffer these input ports and connect them to the global 
-// routing resources in the FPGA.
-
-	assign Reset = BtnU;
-	
-//-------------------	
-	// In this design, we run the core design at full 100MHz clock!
-	assign	sys_clk = board_clk;
-	// assign	sys_clk = DIV_CLK[25];
-
-//------------
-// INPUT: SWITCHES & BUTTONS
-	// BtnL is used as both Start and Acknowledge. 
-	// To make this possible, we need a single clock producing  circuit.
-ee354_debouncer #(.N_dc(28)) ee354_debouncer_1
-        (.CLK(sys_clk), .RESET(Reset), .PB(BtnU), .DPB(), 
-		.SCEN(reset), .MCEN( ), .CCEN( ));
-ee354_debouncer #(.N_dc(28)) ee354_debouncer_2 
-        (.CLK(sys_clk), .RESET(Reset), .PB(BtnD), .DPB(), 
-		.SCEN(confirm_color), .MCEN( ), .CCEN( ));
-ee354_debouncer #(.N_dc(28)) ee354_debouncer_3
-		(.CLK(sys_clk), .RESET(Reset), .PB(BtnC), .DPB(), 
-		.SCEN(confirm_guess), .MCEN( ), .CCEN( ));
-ee354_debouncer #(.N_dc(28)) ee354_debouncer_4
-		(.CLK(sys_clk), .RESET(Reset), .PB(BtnR), .DPB(),
-		.SCEN(right), .MCEN( ), .CCEN( ));
-ee354_debouncer #(.N_dc(28)) ee354_debouncer_5
-		(.CLK(sys_clk), .RESET(Reset), .PB(BtnL), .DPB(), 
-		.SCEN(left), .MCEN( ), .CCEN( ));
-//--------------
-// LEDs
-	assign {Ld7, Ld6} = {0, 0};
-	assign {Ld5, Ld4, Ld3, Ld2, Ld1, Ld0} = {Sw5, Sw4, Sw3, Sw2, Sw1, Sw0}; // Reset is driven by BtnC
-
-
-
-	reg [27:0]	DIV_CLK;
-	always @ (posedge ClkPort, posedge Reset)  
-	begin : CLOCK_DIVIDER
-      if (Reset)
-			DIV_CLK <= 0;
-	  else
-			DIV_CLK <= DIV_CLK + 1'b1;
-	end
-
-
-	wire move_clk;
-	assign move_clk=DIV_CLK[19]; //slower clock to drive the movement of objects on the vga screen
-	wire [11:0] background;
-	wire bright;
-	wire[9:0] hc, vc;
-	wire[15:0] score;
-	wire up,down,left,right;
-	wire [3:0] anode;
-	wire [11:0] rgb;
-	wire rst;
-	display_controller dc(.clk(ClkPort), .hSync(hSync), .vSync(vSync), .bright(bright), .hCount(hc), .vCount(vc));
-
-	// after your display_controller dc instantiation
-wire [11:0] rgb12;
-mastermind_vga mg_vga (
-  .clk      (ClkPort),        // or move_clk if you want slower animation
-  .bright   (bright),
-  .hCount   (hc),
-  .vCount   (vc),
-  .matrix   (matrix),         // the 6×12-bit array you fill on q_Check
-  .guess_num(guessNumber),
-  .q_Input  (q_Input),
-  .vgaR     (vgaR),
-  .vgaG     (vgaG),
-  .vgaB     (vgaB)
+    // VGA
+    output wire       hSync, vSync,
+    output wire [3:0] vgaR, vgaG, vgaB
 );
 
+  // Disable external memories
+  wire MemOE, MemWR, RamCS;
+  assign {MemOE, MemWR, RamCS, QuadSpiFlashCS} = 4'b1111;
 
+    // Clock buffering and reset: use direct port clock as system clock
+  wire sys_clk = ClkPort;
+  // debounced reset
+  wire reset_db;
 
-//------------
-// DESIGN
-	// On two pushes of BtnR, numbers A and B are recorded in Ain and Bin
-    // (registers of the TOP) respectively
-	always @ (posedge sys_clk, posedge Reset)
-	begin
-		if(Reset)
-		begin			
-			colorIn <= 6'b000000;
-			correct_answer <= 12'b001001001001;
-		end
-		else
-		begin
-			if(q_Input)
-			begin 
-				colorIn <= {Sw5, Sw4, Sw3, Sw2, Sw1, Sw0};
-				//VGA stuff
-			end
-			if(q_Check)
-			begin
-				matrix[guessNumber] <= current_guess;
-				//tell em what they did wrong
-			end
-		end
-	end
-	
-//
-//------------
-	always @(posedge colorIn)
-	begin
-		case(colorIn)
-			6'b000001: current_color <= 3'b001; 
-			6'b000010: current_color <= 3'b010; 
-			6'b000100: current_color <= 3'b011; 
-			6'b001000: current_color <= 3'b100; 
-			6'b010000: current_color <= 3'b101; 
-			6'b100000: current_color <= 3'b110; 
-			default: current_color <= 3'b000;   
-		endcase
-	end	
-	// the state machine module
-	mastermind_core mastermind_core_1(.Clk(ClkPort), .Reset(Reset), .correct_answer(correct_answer), .current_color(current_color), 
-									.confirm_color(confirm_color), .check_guess(confirm_guess), .BtnL(left), .BtnR(right), guess_num(guessNumber), 
-									current_guess(current_guess), q_Start(q_Start), q_Input(q_Input), q_Check(q_Check), q_DoneC(q_DoneC), q_DoneNC(q_DoneNC));
+  // Debounced buttons
+  wire confirm_color, confirm_guess, left_db, right_db;
+  ee354_debouncer #(.N_dc(28)) db_reset   (.CLK(sys_clk), .RESET(BtnU), .PB(BtnU), .SCEN(reset_db));
+  ee354_debouncer #(.N_dc(28)) db_color   (.CLK(sys_clk), .RESET(BtnU), .PB(BtnD), .SCEN(confirm_color));
+  ee354_debouncer #(.N_dc(28)) db_guess   (.CLK(sys_clk), .RESET(BtnU), .PB(BtnC), .SCEN(confirm_guess));
+  ee354_debouncer #(.N_dc(28)) db_right   (.CLK(sys_clk), .RESET(BtnU), .PB(BtnR), .SCEN(right_db));
+  ee354_debouncer #(.N_dc(28)) db_left    (.CLK(sys_clk), .RESET(BtnU), .PB(BtnL), .SCEN(left_db));
+ 
+  // FSM signals
+  wire [2:0] guessNumber;
+  wire [11:0] current_guess;
+  wire q_Start, q_Input, q_Check, q_DoneC, q_DoneNC;
+  reg  [11:0] correct_answer = 12'b001_001_001_001;
+  reg  [2:0]  current_color;
 
-	assign {An7, An6, An5, An4, An3, An2, An1, An0} = 8'b11111111;
+  // Update current_color from switches when in INPUT
+  always @(posedge sys_clk) if (q_Input) begin
+    case ({Sw5,Sw4,Sw3,Sw2,Sw1,Sw0})
+      6'b000001: current_color <= 3'b001;
+      6'b000010: current_color <= 3'b010;
+      6'b000100: current_color <= 3'b011;
+      6'b001000: current_color <= 3'b100;
+      6'b010000: current_color <= 3'b101;
+      6'b100000: current_color <= 3'b110;
+      default:   current_color <= 3'b000;
+    endcase
+  end
 
+  // Instantiate game core
+  mastermind_core core_u (
+    .Clk           (sys_clk),
+    .Reset         (reset_db),
+    .correct_answer(correct_answer),
+    .current_color (current_color),
+    .confirm_color (confirm_color),
+    .check_guess   (confirm_guess),
+    .BtnL          (left_db),
+    .BtnR          (right_db),
+    .index         (),           // unused here
+    .guess_num     (guessNumber),
+    .current_guess (current_guess),
+    .q_Start       (q_Start),
+    .q_Input       (q_Input),
+    .q_Check       (q_Check),
+    .q_DoneC       (q_DoneC),
+    .q_DoneNC      (q_DoneNC)
+  );
 
+  // Store guesses into matrix on each check
+  reg [11:0] matrix [5:0];
+  always @(posedge sys_clk) if (q_Check) matrix[guessNumber] <= current_guess;
+
+  // Flatten matrix for VGA port
+  wire [71:0] matrix_flat;
+  genvar i;
+  generate
+    for (i = 0; i < 6; i = i + 1) begin : FLAT
+      assign matrix_flat[i*12 +: 12] = matrix[i];
+    end
+  endgenerate
+
+  // VGA timing
+  wire        bright;
+  wire [9:0]  hc, vc;
+  display_controller dc (
+    .clk    (ClkPort),
+    .hSync  (hSync),
+    .vSync  (vSync),
+    .bright (bright),
+    .hCount (hc),
+    .vCount (vc)
+  );
+
+  // Mastermind VGA renderer
+  mastermind_vga mg_vga (
+    .clk         (ClkPort),
+    .bright      (bright),
+    .hCount      (hc),
+    .vCount      (vc),
+    .matrix_flat (matrix_flat),
+    .guess_num   (guessNumber),
+    .q_Input     (q_Input),
+    .vgaR        (vgaR),
+    .vgaG        (vgaG),
+    .vgaB        (vgaB)
+  );
+
+  // Drive LEDs and SSDs (example)
+  assign {Ld5,Ld4,Ld3,Ld2,Ld1,Ld0} = {Sw5,Sw4,Sw3,Sw2,Sw1,Sw0};
+  assign {An7,An6,An5,An4,An3,An2,An1,An0} = 8'b1111_1111;
 
 endmodule
-

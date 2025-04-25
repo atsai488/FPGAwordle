@@ -113,3 +113,6 @@ set_property PACKAGE_PIN H14 [get_ports MemOE]
 set_property PACKAGE_PIN R11 [get_ports MemWR]					
 	set_property IOSTANDARD LVCMOS33 [get_ports MemWR]
 
+# Allow unconstrained I/O and default IOSTANDARD
+set_property SEVERITY Warning [get_drc_checks NSTD-1]
+set_property SEVERITY Warning [get_drc_checks UCIO-1]
