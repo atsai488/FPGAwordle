@@ -34,12 +34,6 @@ set_property PACKAGE_PIN R17 [get_ports {Sw4}]
 #Bank = 34, Pin name = IO_L20P_T3_34,						Sch name = Sw5
 set_property PACKAGE_PIN T18 [get_ports {Sw5}]					
 	set_property IOSTANDARD LVCMOS33 [get_ports {Sw5}]
-#Bank = 34, Pin name = IO_L20N_T3_34,						Sch name = Sw6
-set_property PACKAGE_PIN U18 [get_ports {Sw6}]					
-	set_property IOSTANDARD LVCMOS33 [get_ports {Sw6}]
-#Bank = 34, Pin name = IO_L10P_T1_34,						Sch name = Sw7
-set_property PACKAGE_PIN R13 [get_ports {Sw7}]					
-	set_property IOSTANDARD LVCMOS33 [get_ports {Sw7}]
 
 # LEDs
 #Bank = 34, Pin name = IO_L24N_T3_34,						Sch name = LED0
@@ -60,12 +54,6 @@ set_property PACKAGE_PIN R18 [get_ports {Ld4}]
 #Bank = 34, Pin name = IO_L12N_T1_MRCC_34,					Sch	name = LED5
 set_property PACKAGE_PIN V17 [get_ports {Ld5}]					
 	set_property IOSTANDARD LVCMOS33 [get_ports {Ld5}]
-#Bank = 34, Pin name = IO_L22P_T3_34,						Sch name = LED6
-set_property PACKAGE_PIN U17 [get_ports {Ld6}]					
-	set_property IOSTANDARD LVCMOS33 [get_ports {Ld6}]
-#Bank = 34, Pin name = IO_L22N_T3_34,						Sch name = LED7
-set_property PACKAGE_PIN U16 [get_ports {Ld7}]					
-	set_property IOSTANDARD LVCMOS33 [get_ports {Ld7}]
 
 
 set_property PACKAGE_PIN E3 [get_ports ClkPort]							
@@ -179,16 +167,6 @@ set_property PACKAGE_PIN B12 [get_ports vSync]
 
 set_property PACKAGE_PIN L13 [get_ports QuadSpiFlashCS]					
 	set_property IOSTANDARD LVCMOS33 [get_ports QuadSpiFlashCS]
-
-set_property PACKAGE_PIN L18 [get_ports RamCS]					
-	set_property IOSTANDARD LVCMOS33 [get_ports RamCS]
-
-set_property PACKAGE_PIN H14 [get_ports MemOE]					
-	set_property IOSTANDARD LVCMOS33 [get_ports MemOE]
-
-set_property PACKAGE_PIN R11 [get_ports MemWR]					
-	set_property IOSTANDARD LVCMOS33 [get_ports MemWR]
-
 
 set_property SEVERITY Warning [get_drc_checks NSTD-1]
 set_property SEVERITY Warning [get_drc_checks UCIO-1]

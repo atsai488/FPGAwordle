@@ -19,10 +19,10 @@ module mastermind_vga (
   wire [11:0] matrix [5:0];
   genvar i;
   generate
-    for (i = 0; i < 24; i = i + 1) begin
-      assign matrix[i] = matrix_flat[3*(i+1) - 1 : 3*i];
-    end
-  endgenerate
+  for (i = 0; i < 6; i = i + 1) begin
+    assign matrix[i] = matrix_flat[i*12 +: 12];
+  end
+endgenerate
 
   // geometry parameters
   localparam COLS    = 4;
