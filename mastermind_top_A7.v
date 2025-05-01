@@ -94,23 +94,29 @@ module ee354_mastermind_top_A7(
   // Matrix storage and update on check
   reg [11:0] matrix [0:5];
   integer r;
-  always @(posedge sys_clk or posedge reset_db) begin
-    if (reset_db) begin
-      for (r = 0; r < 6; r = r + 1)
-        matrix[r] <= 12'd0;
-    end else if (q_Check) begin
-      matrix[guessNumber] <= current_guess;
+always @(posedge sys_clk or posedge reset_db) begin
+  if (reset_db) begin
+    for (r = 0; r < 6; r = r + 1)
+      matrix[r] <= 12'd0;
+  end else if (confirm_color && q_Input) begin
+    matrix[guessNumber][cursor_index*3 +: 3] <= current_color;
+  end
+end
+
+
+// Flatten matrix into 72-bit register
+reg [71:0] matrix_flat;
+integer m;
+
+always @(posedge sys_clk or posedge reset_db) begin
+  if (reset_db) begin
+    matrix_flat <= 72'd0;
+  end else begin
+    for (m = 0; m < 6; m = m + 1) begin
+      matrix_flat[m*12 +: 12] <= matrix[m];
     end
   end
-
-  // Flatten matrix into 72-bit bus
-  wire [71:0] matrix_flat;
-  genvar m;
-  generate
-    for (m = 0; m < 6; m = m + 1) begin
-      assign matrix_flat[m*12 +: 12] = matrix[m];
-    end
-  endgenerate
+end
 
   // VGA timing
   wire        bright;
