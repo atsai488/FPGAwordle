@@ -67,6 +67,7 @@ module mastermind_core(
                 else if (guess_num == 3'd5)
                   state <= DONENC;
                 else begin
+                  current_guess <= 12'd0;
                   state     <= INPUT;
                   guess_num <= guess_num + 1;
                 end

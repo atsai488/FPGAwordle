@@ -10,7 +10,7 @@ module mastermind_vga (
     input            q_Input,
     input      [1:0] cursor_index,
     input      [2:0] current_color,
-    input            q_DoneC,        // <— new input
+    input            q_DoneC,        // <- new input
     output reg [3:0] vgaR,
     output reg [3:0] vgaG,
     output reg [3:0] vgaB
@@ -40,7 +40,7 @@ module mastermind_vga (
       vgaR <= 0; vgaG <= 0; vgaB <= 0;
 
     end else if (q_DoneC) begin
-      // DONEC → full‐screen green
+      // DONEC → full-screen green
       vgaR <= 4'h0; 
       vgaG <= 4'hF; 
       vgaB <= 4'h0;
