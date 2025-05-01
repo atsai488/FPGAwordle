@@ -16,7 +16,7 @@ module mastermind_vga (
 );
 
   // unpack the flat 72-bit bus into an internal 6×12 array
-  wire [11:0] matrix [5:0];
+  wire [5:0] matrix [11:0];
   genvar i;
   generate
   for (i = 0; i < 6; i = i + 1) begin
@@ -27,8 +27,8 @@ endgenerate
   // geometry parameters
   localparam COLS    = 4;
   localparam ROWS    = 6;
-  localparam SLOT_W  = 48;    // each peg‐slot square width
-  localparam SLOT_H  = 48;    // each peg‐slot square height
+  localparam SLOT_W  = 48;    // each peg-slot square width
+  localparam SLOT_H  = 48;    // each peg-slot square height
   localparam MARGIN  = 16;    // space between slots
   localparam X0      = 300;    // left offset for whole grid
   localparam Y0      = 50;    // top  offset for whole grid
@@ -68,7 +68,7 @@ endgenerate
         dy = vCount - y0_slot;
 
         // draw a circular peg of radius 16px at center (24,24)
-        // (dx−24)^2 + (dy−24)^2 < 16^2
+        // (dx-24)^2 + (dy-24)^2 < 16^2
         if ((dx-24)*(dx-24) + (dy-24)*(dy-24) <= 16*16) begin
           // get the 3-bit color code from matrix[row]
           case ( matrix[row][col*3 +: 3] )

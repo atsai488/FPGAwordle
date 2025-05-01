@@ -49,10 +49,10 @@ module ee354_mastermind_top_A7(
   // Debounced buttons
   wire confirm_color, confirm_guess, left_db, right_db;
   ee354_debouncer #(.N_dc(28)) db_reset   (.CLK(sys_clk), .RESET(BtnU), .PB(BtnU), .SCEN(reset_db));
-  ee354_debouncer #(.N_dc(28)) db_color   (.CLK(sys_clk), .RESET(BtnU), .PB(BtnD), .SCEN(confirm_color));
-  ee354_debouncer #(.N_dc(28)) db_guess   (.CLK(sys_clk), .RESET(BtnU), .PB(BtnC), .SCEN(confirm_guess));
-  ee354_debouncer #(.N_dc(28)) db_right   (.CLK(sys_clk), .RESET(BtnU), .PB(BtnR), .SCEN(right_db));
-  ee354_debouncer #(.N_dc(28)) db_left    (.CLK(sys_clk), .RESET(BtnU), .PB(BtnL), .SCEN(left_db));
+  ee354_debouncer #(.N_dc(28)) db_color   (.CLK(sys_clk), .RESET(reset_db), .PB(BtnD), .SCEN(confirm_color));
+  ee354_debouncer #(.N_dc(28)) db_guess   (.CLK(sys_clk), .RESET(reset_db), .PB(BtnC), .SCEN(confirm_guess));
+  ee354_debouncer #(.N_dc(28)) db_right   (.CLK(sys_clk), .RESET(reset_db), .PB(BtnR), .SCEN(right_db));
+  ee354_debouncer #(.N_dc(28)) db_left    (.CLK(sys_clk), .RESET(reset_db), .PB(BtnL), .SCEN(left_db));
  
   // FSM signals
   wire [2:0] guessNumber;
@@ -66,8 +66,8 @@ module ee354_mastermind_top_A7(
   // Update current_color from switches when in INPUT
   always @(posedge sys_clk) 
   begin
-  	if (q_Input) begin
-		case ({Sw5,Sw4,Sw3,Sw2,Sw1,Sw0})
+  if (q_Input) begin
+    case ({Sw5,Sw4,Sw3,Sw2,Sw1,Sw0})
 		6'b000001: current_color <= 3'b001;
 		6'b000010: current_color <= 3'b010;
 		6'b000100: current_color <= 3'b011;
@@ -75,8 +75,10 @@ module ee354_mastermind_top_A7(
 		6'b010000: current_color <= 3'b101;
 		6'b100000: current_color <= 3'b110;
 		default:   current_color <= 3'b000;
-		endcase
-		matrix_flat[guessNumber * 12 + index * 3 +: 3] <= current_color;
+    endcase
+		if (q_Input && confirm_color) begin
+        matrix_flat[guessNumber * 12 + index * 3 +: 3] <= current_color;
+        end
 	end
   end
 
